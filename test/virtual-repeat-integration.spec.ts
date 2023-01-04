@@ -320,8 +320,8 @@ describe('virtual-repeat-integration.spec.ts', () => {
       viewModel.items = null;
       await waitForTimeout(50);
 
-      let topBufferHeight = virtualRepeat.topBufferEl.getBoundingClientRect().height;
-      let bottomBufferHeight = virtualRepeat.bottomBufferEl.getBoundingClientRect().height;
+      let topBufferHeight = virtualRepeat.beginBufferEl.getBoundingClientRect().height;
+      let bottomBufferHeight = virtualRepeat.endBufferEl.getBoundingClientRect().height;
 
       expect(topBufferHeight + bottomBufferHeight).toBe(0);
 

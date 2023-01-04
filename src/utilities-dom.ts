@@ -1,4 +1,4 @@
-import { Math$round, $isNaN } from './utilities';
+import { Math$round, $isNaN, Direction } from './utilities';
 import { IView } from './interfaces';
 import { htmlElement, doc } from './constants';
 
@@ -21,10 +21,10 @@ export const getScrollerElement = (element: Node): HTMLElement => {
 /**
  * Determine real distance of an element to top of current document
  */
-export const getElementDistanceToTopOfDocument = (element: Element): number => {
+export const getElementDistanceToTopOfDocument = (element: Element, direction: Direction=Direction.Vertical): number => {
   let box = element.getBoundingClientRect();
-  let scrollTop = window.pageYOffset;
-  let clientTop = htmlElement.clientTop;
+  let scrollTop = (direction === Direction.Vertical) ? window.pageYOffset : window.pageXOffset;
+  let clientTop = (direction === Direction.Vertical) ? htmlElement.clientTop : htmlElement.clientLeft;
   let top  = box.top + scrollTop - clientTop;
   return Math$round(top);
 };
@@ -57,11 +57,23 @@ export const calcOuterHeight = (element: Element): number => {
   return height;
 };
 
+export const calcOuterWidth = (element: Element): number => {
+  let width = element.getBoundingClientRect().width;
+  width += getStyleValues(element, 'marginLeft', 'marginRight');
+  return width;
+}
+
 export const calcScrollHeight = (element: Element): number => {
   let height = element.getBoundingClientRect().height;
   height -= getStyleValues(element, 'borderTopWidth', 'borderBottomWidth');
   return height;
 };
+
+export const calcScrollWidth = (element: Element) : number => {
+  let width = element.getBoundingClientRect().width;
+  width -= getStyleValues(element, 'borderLeftWidth', 'borderRightWidth');
+  return width;
+}
 
 export const insertBeforeNode = (view: IView, bottomBuffer: Element): void => {
   // todo: account for anchor comment
@@ -74,9 +86,9 @@ export const insertBeforeNode = (view: IView, bottomBuffer: Element): void => {
  * child.offsetTop - parent.offsetTop
  * There are steps in the middle to account for offsetParent but it's basically that
  */
-export const getDistanceToParent = (child: HTMLElement, parent: HTMLElement): number => {
+export const getDistanceToParent = (child: HTMLElement, parent: HTMLElement, direction:Direction=Direction.Vertical): number => {
   const offsetParent = child.offsetParent as HTMLElement;
-  const childOffsetTop = child.offsetTop;
+  const childOffsetTop = (direction === Direction.Vertical) ? child.offsetTop : child.offsetLeft;
   // [el] <-- offset parent === parent
   //  ...
   //   [el] <-- child
@@ -88,13 +100,13 @@ export const getDistanceToParent = (child: HTMLElement, parent: HTMLElement): nu
     //   [el] <-- parent
     //     [el] <-- child
     if (offsetParent.contains(parent)) {
-      return childOffsetTop - parent.offsetTop;
+      return childOffsetTop - ( (direction === Direction.Vertical) ? parent.offsetTop : parent.offsetLeft);
     }
     // [el] <-- parent
     //   [el] <-- offset parent
     //     [el] <-- child
     else {
-      return childOffsetTop + getDistanceToParent(offsetParent, parent);
+      return childOffsetTop + getDistanceToParent(offsetParent, parent, direction);
     }
   }
 };

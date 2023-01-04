@@ -13,6 +13,7 @@ export interface IScrollNextScrollContext {
 export interface IVirtualRepeater extends AbstractRepeater {
 	items: any;
 	local?: string;
+	direction?: Direction;
 	/**
 	 * First view index, for proper follow up calculations
 	 */
@@ -32,7 +33,7 @@ export interface IVirtualRepeater extends AbstractRepeater {
 	/**
 	 * Bot buffer element, used to reflect the visualization of amount of items `after` the first visible item
 	 */
-	bottomBufferEl: HTMLElement;
+	endBufferEl: HTMLElement;
 	/**
 	 * Height of top buffer to properly push the visible rendered list items into right position
 	 * Usually determined by `_first` visible index * `itemHeight`
@@ -255,7 +256,9 @@ export declare type IViewSlot = ViewSlot & {
 export interface IScrollerInfo {
 	scroller: HTMLElement;
 	scrollTop: number;
+	scrollLeft: number;
 	height: number;
+	width: number;
 }
 export declare const enum VirtualizationCalculation {
 	none = 0,
@@ -270,6 +273,10 @@ export declare const VirtualizationEvents: {
 	scrollerSizeChange: "virtual-repeat-scroller-size-changed";
 	itemSizeChange: "virtual-repeat-item-size-changed";
 };
+declare enum Direction {
+	Vertical = 0,
+	Horizontal = 1
+}
 declare class VirtualRepeatStrategyLocator {
 	constructor();
 	/**
@@ -333,11 +340,11 @@ export declare class VirtualRepeat extends AbstractRepeater implements IVirtualR
 	/**
 	 * Top buffer element, used to reflect the visualization of amount of items `before` the first visible item
 	 */
-	topBufferEl: HTMLElement;
+	beginBufferEl: HTMLElement;
 	/**
 	 * Bot buffer element, used to reflect the visualization of amount of items `after` the first visible item
 	 */
-	bottomBufferEl: HTMLElement;
+	endBufferEl: HTMLElement;
 	/**
 	 * Height of each item. Calculated based on first item
 	 */
@@ -355,6 +362,8 @@ export declare class VirtualRepeat extends AbstractRepeater implements IVirtualR
 	 */
 	strategy: IVirtualRepeatStrategy;
 	collectionObserver: any;
+	/** direction of scroll **/
+	direction: Direction;
 	constructor(element: HTMLElement, viewFactory: BoundViewFactory, instruction: TargetInstruction, viewSlot: ViewSlot, viewResources: ViewResources, observerLocator: ObserverLocator, collectionStrategyLocator: VirtualRepeatStrategyLocator, templateStrategyLocator: TemplateStrategyLocator);
 	/**@override */
 	bind(bindingContext: any, overrideContext: OverrideContext): void;

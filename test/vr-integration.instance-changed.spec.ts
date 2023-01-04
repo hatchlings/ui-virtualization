@@ -284,8 +284,8 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       }
       expect(virtualRepeat.topBufferHeight).toBe(0);
       expect(virtualRepeat.bottomBufferHeight).toBe(0);
-      expect(virtualRepeat.topBufferEl.getBoundingClientRect().height).toBe(0);
-      expect(virtualRepeat.bottomBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.beginBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.endBufferEl.getBoundingClientRect().height).toBe(0);
     });
 
     // In this test, it bootstraps a stage with 100 items
@@ -333,7 +333,7 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       expect(virtualRepeat.lastViewIndex()).toBe(29, 'repeat._lastViewIndex() 2');
       expect(scrollerEl.scrollTop).toBe(50 * (30 - 500 / 50), 'scrollerEl.scrollTop 3');
       validateScrolledState(virtualRepeat, viewModel, 50);
-      expect(virtualRepeat.bottomBufferEl.style.height).toBe(
+      expect(virtualRepeat.endBufferEl.style.height).toBe(
         `0px`,
         'repeat.bottomBufferEl.height'
       );
@@ -388,7 +388,7 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       expect(virtualRepeat.lastViewIndex()).toBe(29, 'repeat._lastViewIndex() 2');
       expect(scrollerEl.scrollTop).toBe(50 * (30 - 500 / 50), 'scrollerEl.scrollTop 3');
       validateScrolledState(virtualRepeat, viewModel, 50);
-      expect(virtualRepeat.bottomBufferEl.style.height).toBe(
+      expect(virtualRepeat.endBufferEl.style.height).toBe(
         `0px`,
         'repeat.bottomBufferEl.height'
       );
@@ -715,8 +715,8 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       }
       expect(virtualRepeat.topBufferHeight).toBe(0);
       expect(virtualRepeat.bottomBufferHeight).toBe(0);
-      expect(virtualRepeat.topBufferEl.getBoundingClientRect().height).toBe(0);
-      expect(virtualRepeat.bottomBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.beginBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.endBufferEl.getBoundingClientRect().height).toBe(0);
     });
 
     // In this test, it bootstraps a stage with 100 items
@@ -767,7 +767,7 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       expect(virtualRepeat.lastViewIndex()).toBe(29, 'repeat._lastViewIndex() 2');
       expect(scrollerEl.scrollTop).toBe(50 * (30 - 500 / 50), 'scrollerEl.scrollTop 3');
       validateScrolledState(virtualRepeat, viewModel, 50);
-      expect(virtualRepeat.bottomBufferEl.style.height).toBe(
+      expect(virtualRepeat.endBufferEl.style.height).toBe(
         `0px`,
         'repeat.bottomBufferEl.height'
       );
@@ -995,8 +995,8 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       }
       expect(virtualRepeat.topBufferHeight).toBe(0);
       expect(virtualRepeat.bottomBufferHeight).toBe(0);
-      expect(virtualRepeat.topBufferEl.getBoundingClientRect().height).toBe(0);
-      expect(virtualRepeat.bottomBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.beginBufferEl.getBoundingClientRect().height).toBe(0);
+      expect(virtualRepeat.endBufferEl.getBoundingClientRect().height).toBe(0);
     });
 
     // In this test, it bootstraps a stage with 100 items
@@ -1046,7 +1046,7 @@ describe('vr-integration.instance-changed.spec.ts', () => {
       expect(virtualRepeat.lastViewIndex()).toBe(29, 'repeat._lastViewIndex() 2');
       expect(scrollerEl.scrollTop).toBe(50 * (30 - 500 / 50), 'scrollerEl.scrollTop 3');
       validateScrolledState(virtualRepeat, viewModel, 50);
-      expect(virtualRepeat.bottomBufferEl.style.height).toBe(
+      expect(virtualRepeat.endBufferEl.style.height).toBe(
         `0px`,
         'repeat.bottomBufferEl.height'
       );
@@ -1391,8 +1391,8 @@ describe('vr-integration.instance-changed.spec.ts', () => {
         }
         expect(virtualRepeat.topBufferHeight).toBe(0);
         expect(virtualRepeat.bottomBufferHeight).toBe(0);
-        expect(virtualRepeat.topBufferEl.getBoundingClientRect().height).toBe(0);
-        expect(virtualRepeat.bottomBufferEl.getBoundingClientRect().height).toBe(0);
+        expect(virtualRepeat.beginBufferEl.getBoundingClientRect().height).toBe(0);
+        expect(virtualRepeat.endBufferEl.getBoundingClientRect().height).toBe(0);
       });
 
       // In this test, it bootstraps a stage with 100 items
@@ -1449,7 +1449,7 @@ describe('vr-integration.instance-changed.spec.ts', () => {
         expect(virtualRepeat.lastViewIndex()).toBe(29, 'repeat._lastViewIndex() 2');
         expect(scrollerEl.scrollTop).toBe(50 * (30 - 500 / 50), 'scrollerEl.scrollTop 3');
         validateScrolledState(virtualRepeat, viewModel, 50);
-        expect(virtualRepeat.bottomBufferEl.style.height).toBe(
+        expect(virtualRepeat.endBufferEl.style.height).toBe(
           `0px`,
           'repeat.bottomBufferEl.height'
         );
@@ -1795,8 +1795,8 @@ describe('vr-integration.instance-changed.spec.ts', () => {
         }
         expect(virtualRepeat.topBufferHeight).toBe(0);
         expect(virtualRepeat.bottomBufferHeight).toBe(0);
-        expect(virtualRepeat.topBufferEl.getBoundingClientRect().height).toBe(0);
-        expect(virtualRepeat.bottomBufferEl.getBoundingClientRect().height).toBe(0);
+        expect(virtualRepeat.beginBufferEl.getBoundingClientRect().height).toBe(0);
+        expect(virtualRepeat.endBufferEl.getBoundingClientRect().height).toBe(0);
       });
     }
   });

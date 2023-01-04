@@ -2,6 +2,7 @@ import { Binding, Scope, ICollectionObserverSplice, ObserverLocator, InternalCol
 import { TaskQueue } from 'aurelia-task-queue';
 import { View, ViewSlot, Controller } from 'aurelia-templating';
 import { AbstractRepeater } from 'aurelia-templating-resources';
+import { Direction } from './utilities';
 
 export interface IScrollNextScrollContext {
   topIndex: number;
@@ -48,6 +49,8 @@ export interface IVirtualRepeater extends AbstractRepeater {
 
   local?: string;
 
+  direction?: Direction;
+
   /**
    * First view index, for proper follow up calculations
    */
@@ -72,12 +75,12 @@ export interface IVirtualRepeater extends AbstractRepeater {
    * Top buffer element, used to reflect the visualization of amount of items `before` the first visible item
    * @internal
    */
-  topBufferEl: HTMLElement;
+  beginBufferEl: HTMLElement;
 
   /**
    * Bot buffer element, used to reflect the visualization of amount of items `after` the first visible item
    */
-  bottomBufferEl: HTMLElement;
+  endBufferEl: HTMLElement;
 
   /**
    * Height of top buffer to properly push the visible rendered list items into right position
@@ -344,7 +347,9 @@ export interface IScrollerInfo {
   scroller: HTMLElement;
   // scrollHeight: number;
   scrollTop: number;
+  scrollLeft: number;
   height: number;
+  width: number;
 }
 
 export const enum VirtualizationCalculation {

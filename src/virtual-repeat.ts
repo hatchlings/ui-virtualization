@@ -26,12 +26,14 @@ import { DOM, PLATFORM } from 'aurelia-pal';
 import { TaskQueue } from 'aurelia-task-queue';
 import {
   rebindAndMoveView,
+  Direction
 } from './utilities';
 import {
   calcOuterHeight,
   getElementDistanceToTopOfDocument,
   hasOverflowScroll,
   calcScrollHeight,
+  calcScrollWidth
 } from './utilities-dom';
 import { VirtualRepeatStrategyLocator } from './virtual-repeat-strategy-locator';
 import { TemplateStrategyLocator } from './template-strategy-locator';
@@ -237,12 +239,12 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
   /**
    * Top buffer element, used to reflect the visualization of amount of items `before` the first visible item
    */
-  topBufferEl: HTMLElement;
+  beginBufferEl: HTMLElement;
 
   /**
    * Bot buffer element, used to reflect the visualization of amount of items `after` the first visible item
    */
-  bottomBufferEl: HTMLElement;
+  endBufferEl: HTMLElement;
 
   /**
    * Height of each item. Calculated based on first item
@@ -292,6 +294,9 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
   callContext: VirtualRepeatCallContext;
   collectionObserver: any;
 
+  /** direction of scroll **/
+  direction: Direction;
+
   constructor(
     element: HTMLElement,
     viewFactory: BoundViewFactory,
@@ -308,6 +313,7 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
     });
 
     this.element = element;
+    this.direction = (element.parentElement?.getAttribute && element.parentElement.getAttribute('horizontal-scroll') !== null) ? Direction.Horizontal : Direction.Vertical;
     this.viewFactory = viewFactory;
     this.instruction = instruction;
     this.viewSlot = viewSlot as IViewSlot;
@@ -342,14 +348,14 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
     const element = this.element;
     const templateStrategy = this.templateStrategy = this.templateStrategyLocator.getStrategy(element);
     const scrollerEl = this.scrollerEl = templateStrategy.getScrollContainer(element);
-    const [topBufferEl, bottomBufferEl] = templateStrategy.createBuffers(element);
+    const [beginBufferEl, endBufferEl] = templateStrategy.createBuffers(element);
     const isFixedHeightContainer = scrollerEl !== htmlElement;
       // this.fixedHeightContainer = hasOverflowScroll(containerEl);
     // context bound listener
     const scrollListener = this._onScroll;
 
-    this.topBufferEl = topBufferEl;
-    this.bottomBufferEl = bottomBufferEl;
+    this.beginBufferEl = beginBufferEl;
+    this.endBufferEl = endBufferEl;
     this.itemsChanged();
     // take a snapshot of current scrolling information
     this._currScrollerInfo = this.getScrollerInfo();
@@ -357,8 +363,8 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
     if (isFixedHeightContainer) {
       scrollerEl.addEventListener('scroll', scrollListener);
     } else {
-      const firstElement = templateStrategy.getFirstElement(topBufferEl, bottomBufferEl);
-      this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(topBufferEl);
+      const firstElement = templateStrategy.getFirstElement(beginBufferEl, endBufferEl);
+      this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(beginBufferEl, this.direction);
       DOM.addEventListener('scroll', scrollListener, false);
       // when there is no fixed height container (container with overflow scroll/auto)
       // it's assumed that the whole document will be scrollable
@@ -367,7 +373,7 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
       // unfortunately, there is no easy way to observe this value without using dirty checking
       this._calcDistanceToTopInterval = PLATFORM.global.setInterval(() => {
         const prevDistanceToTop = this.distanceToTop;
-        const currDistanceToTop = getElementDistanceToTopOfDocument(topBufferEl);
+        const currDistanceToTop = getElementDistanceToTopOfDocument(beginBufferEl, this.direction);
         this.distanceToTop = currDistanceToTop;
         if (prevDistanceToTop !== currDistanceToTop) {
           const currentScrollerInfo = this.getScrollerInfo();
@@ -401,8 +407,8 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
       = false;
     this._unsubscribeCollection();
     this.resetCalculation();
-    this.templateStrategy.removeBuffers(this.element, this.topBufferEl, this.bottomBufferEl);
-    this.topBufferEl = this.bottomBufferEl = this.scrollerEl = null;
+    this.templateStrategy.removeBuffers(this.element, this.beginBufferEl, this.endBufferEl);
+    this.beginBufferEl = this.endBufferEl = this.scrollerEl = null;
     this.removeAllViews(/*return to cache?*/true, /*skip animation?*/false);
     const $clearInterval = PLATFORM.global.clearInterval;
     $clearInterval(this._calcDistanceToTopInterval);
@@ -543,10 +549,14 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
       scroller: scroller,
       // scrollHeight: scroller.scrollHeight,
       scrollTop: scroller.scrollTop,
+      scrollLeft: scroller.scrollLeft,
       // height: calcScrollHeight(scroller)
       height: scroller === htmlElement
         ? innerHeight
         : calcScrollHeight(scroller),
+      width: scroller === htmlElement
+        ? innerWidth
+        : calcScrollWidth(scroller)
     };
   }
 
@@ -914,8 +924,15 @@ export class VirtualRepeat extends AbstractRepeater implements IVirtualRepeater 
   }
 
   updateBufferElements(skipUpdate?: boolean): void {
-    this.topBufferEl.style.height = `${this.topBufferHeight}px`;
-    this.bottomBufferEl.style.height = `${this.bottomBufferHeight}px`;
+    if(this.direction === Direction.Vertical) {
+      this.beginBufferEl.style.height = `${this.topBufferHeight}px`;
+      this.endBufferEl.style.height = `${this.bottomBufferHeight}px`;
+    } else {
+      this.beginBufferEl.style.width = `${this.topBufferHeight}px`;
+      this.beginBufferEl.style.display = 'inline-block';
+      this.endBufferEl.style.width = `${this.bottomBufferHeight}px`;
+      this.endBufferEl.style.display = 'inline-block';
+    }
     if (skipUpdate) {
       this._ticking = true;
       $raf(this.revertScrollCheckGuard);

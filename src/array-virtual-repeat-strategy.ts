@@ -8,9 +8,10 @@ import {
   Math$min,
   calcMinViewsRequired,
   rebindView,
+  Direction
 } from './utilities';
 import { VirtualRepeat } from './virtual-repeat';
-import { getDistanceToParent, calcOuterHeight } from './utilities-dom';
+import { getDistanceToParent, calcOuterHeight, calcOuterWidth } from './utilities-dom';
 import { htmlElement } from './constants';
 
 interface IArrayVirtualRepeater extends IVirtualRepeater {
@@ -49,7 +50,7 @@ export class ArrayVirtualRepeatStrategy extends ArrayRepeatStrategy implements I
     }
     // const isFixedHeightContainer = repeat.fixedHeightContainer = hasOverflowScroll(containerEl);
     const firstView = repeat.firstView();
-    const itemHeight = calcOuterHeight(firstView.firstChild as Element);
+    const itemHeight = (repeat.direction === Direction.Horizontal) ? calcOuterWidth(firstView.firstChild as Element) : calcOuterHeight(firstView.firstChild as Element);
     // when item height is 0, bails immediately
     // and return false to notify calculation has finished unsuccessfully
     // it cannot be processed further when item is 0
@@ -71,7 +72,7 @@ export class ArrayVirtualRepeatStrategy extends ArrayRepeatStrategy implements I
   }
 
   getViewRange(repeat: IVirtualRepeater, scrollerInfo: IScrollerInfo): [number, number] {
-    const topBufferEl = repeat.topBufferEl;
+    const topBufferEl = repeat.beginBufferEl;
     const scrollerEl = repeat.scrollerEl;
     const itemHeight = repeat.itemHeight;
     let realScrollTop = 0;
@@ -80,8 +81,8 @@ export class ArrayVirtualRepeatStrategy extends ArrayRepeatStrategy implements I
       // If offset parent of top buffer is the scroll container
       //    its actual offsetTop is just the offset top itself
       // If not, then the offset top is calculated based on the parent offsetTop as well
-      const topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl);
-      const scrollerScrollTop = scrollerInfo.scrollTop;
+      const topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl, repeat.direction);
+      const scrollerScrollTop = (repeat.direction === Direction.Vertical) ? scrollerInfo.scrollTop : scrollerInfo.scrollLeft;
       realScrollTop = Math$max(0, scrollerScrollTop - Math$abs(topBufferDistance));
     } else {
       realScrollTop = pageYOffset - repeat.distanceToTop;
@@ -362,7 +363,7 @@ export class ArrayVirtualRepeatStrategy extends ArrayRepeatStrategy implements I
       // assume it's safe to manually adjust scrollbar top position if so
       const scrollerInfo = repeat.getScrollerInfo();
       const scroller_scroll_top = scrollerInfo.scrollTop;
-      const top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+      const top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
       const real_scroll_top = Math$max(0, scroller_scroll_top === 0
         ? 0
         : (scroller_scroll_top - top_buffer_distance));
@@ -522,11 +523,11 @@ export class ArrayVirtualRepeatStrategy extends ArrayRepeatStrategy implements I
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _remeasure(repeat: IVirtualRepeater, itemHeight: number, newViewCount: number, newArraySize: number, firstIndex: number): void {
     const scrollerInfo = repeat.getScrollerInfo();
-    const scroller_scroll_top = scrollerInfo.scrollTop;
-    const top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+    const scroller_scroll_top = (repeat.direction === Direction.Horizontal) ? scrollerInfo.scrollLeft : scrollerInfo.scrollTop;
+    const top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
     const real_scroll_top = Math$max(0, scroller_scroll_top === 0
-      ? 0
-      : (scroller_scroll_top - top_buffer_distance));
+        ? 0
+        : (scroller_scroll_top - top_buffer_distance));
     let first_index_after_scroll_adjustment = real_scroll_top === 0
       ? 0
       : Math$floor(real_scroll_top / itemHeight);

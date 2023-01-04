@@ -34,10 +34,10 @@ export const rebindAndMoveView = (repeat: IVirtualRepeater, view: IView, index: 
   view.bindingContext[repeat.local] = items[index];
   if (moveToBottom) {
     viewSlot.children.push(viewSlot.children.shift());
-    repeat.templateStrategy.moveViewLast(view, repeat.bottomBufferEl);
+    repeat.templateStrategy.moveViewLast(view, repeat.endBufferEl);
   } else {
     viewSlot.children.unshift(viewSlot.children.splice(-1, 1)[0]);
-    repeat.templateStrategy.moveViewFirst(view, repeat.topBufferEl);
+    repeat.templateStrategy.moveViewFirst(view, repeat.beginBufferEl);
   }
 };
 
@@ -57,3 +57,8 @@ export const Math$round = Math.round;
 export const Math$ceil = Math.ceil;
 export const Math$floor = Math.floor;
 export const $isNaN = isNaN;
+
+export enum Direction {
+  Vertical,
+  Horizontal
+}

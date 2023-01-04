@@ -33,11 +33,11 @@ import { DOM } from 'aurelia-pal';
 export class ListTemplateStrategy extends DefaultTemplateStrategy implements ITemplateStrategy {
 
   /**@override */
-  createBuffers(element: Element): [HTMLElement, HTMLElement] {
+  createBuffers(element: Element, tag: string='li'): [HTMLElement, HTMLElement] {
     const parent = element.parentNode;
     return [
-      parent.insertBefore(DOM.createElement('li'), element),
-      parent.insertBefore(DOM.createElement('li'), element.nextSibling),
+      parent.insertBefore(DOM.createElement(tag), element),
+      parent.insertBefore(DOM.createElement(tag), element.nextSibling),
     ];
   }
 }

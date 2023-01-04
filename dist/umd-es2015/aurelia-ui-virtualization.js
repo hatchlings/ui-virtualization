@@ -15,11 +15,11 @@
         view.bindingContext[repeat.local] = items[index];
         if (moveToBottom) {
             viewSlot.children.push(viewSlot.children.shift());
-            repeat.templateStrategy.moveViewLast(view, repeat.bottomBufferEl);
+            repeat.templateStrategy.moveViewLast(view, repeat.endBufferEl);
         }
         else {
             viewSlot.children.unshift(viewSlot.children.splice(-1, 1)[0]);
-            repeat.templateStrategy.moveViewFirst(view, repeat.topBufferEl);
+            repeat.templateStrategy.moveViewFirst(view, repeat.beginBufferEl);
         }
     };
     const calcMinViewsRequired = (scrollerHeight, itemHeight) => {
@@ -31,6 +31,11 @@
     const Math$round = Math.round;
     const Math$floor = Math.floor;
     const $isNaN = isNaN;
+    var Direction;
+    (function (Direction) {
+        Direction[Direction["Vertical"] = 0] = "Vertical";
+        Direction[Direction["Horizontal"] = 1] = "Horizontal";
+    })(Direction || (Direction = {}));
 
     const doc = document;
     const htmlElement = doc.documentElement;
@@ -46,10 +51,10 @@
         }
         return doc.scrollingElement || htmlElement;
     };
-    const getElementDistanceToTopOfDocument = (element) => {
+    const getElementDistanceToTopOfDocument = (element, direction = Direction.Vertical) => {
         let box = element.getBoundingClientRect();
-        let scrollTop = window.pageYOffset;
-        let clientTop = htmlElement.clientTop;
+        let scrollTop = (direction === Direction.Vertical) ? window.pageYOffset : window.pageXOffset;
+        let clientTop = (direction === Direction.Vertical) ? htmlElement.clientTop : htmlElement.clientLeft;
         let top = box.top + scrollTop - clientTop;
         return Math$round(top);
     };
@@ -72,26 +77,36 @@
         height += getStyleValues(element, 'marginTop', 'marginBottom');
         return height;
     };
+    const calcOuterWidth = (element) => {
+        let width = element.getBoundingClientRect().width;
+        width += getStyleValues(element, 'marginLeft', 'marginRight');
+        return width;
+    };
     const calcScrollHeight = (element) => {
         let height = element.getBoundingClientRect().height;
         height -= getStyleValues(element, 'borderTopWidth', 'borderBottomWidth');
         return height;
     };
+    const calcScrollWidth = (element) => {
+        let width = element.getBoundingClientRect().width;
+        width -= getStyleValues(element, 'borderLeftWidth', 'borderRightWidth');
+        return width;
+    };
     const insertBeforeNode = (view, bottomBuffer) => {
         bottomBuffer.parentNode.insertBefore(view.lastChild, bottomBuffer);
     };
-    const getDistanceToParent = (child, parent) => {
+    const getDistanceToParent = (child, parent, direction = Direction.Vertical) => {
         const offsetParent = child.offsetParent;
-        const childOffsetTop = child.offsetTop;
+        const childOffsetTop = (direction === Direction.Vertical) ? child.offsetTop : child.offsetLeft;
         if (offsetParent === null || offsetParent === parent) {
             return childOffsetTop;
         }
         else {
             if (offsetParent.contains(parent)) {
-                return childOffsetTop - parent.offsetTop;
+                return childOffsetTop - ((direction === Direction.Vertical) ? parent.offsetTop : parent.offsetLeft);
             }
             else {
-                return childOffsetTop + getDistanceToParent(offsetParent, parent);
+                return childOffsetTop + getDistanceToParent(offsetParent, parent, direction);
             }
         }
     };
@@ -115,7 +130,7 @@
                 this.createFirstRow(repeat);
             }
             const firstView = repeat.firstView();
-            const itemHeight = calcOuterHeight(firstView.firstChild);
+            const itemHeight = (repeat.direction === Direction.Horizontal) ? calcOuterWidth(firstView.firstChild) : calcOuterHeight(firstView.firstChild);
             if (itemHeight === 0) {
                 return 0;
             }
@@ -130,14 +145,14 @@
             }
         }
         getViewRange(repeat, scrollerInfo) {
-            const topBufferEl = repeat.topBufferEl;
+            const topBufferEl = repeat.beginBufferEl;
             const scrollerEl = repeat.scrollerEl;
             const itemHeight = repeat.itemHeight;
             let realScrollTop = 0;
             const isFixedHeightContainer = scrollerInfo.scroller !== htmlElement;
             if (isFixedHeightContainer) {
-                const topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl);
-                const scrollerScrollTop = scrollerInfo.scrollTop;
+                const topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl, repeat.direction);
+                const scrollerScrollTop = (repeat.direction === Direction.Vertical) ? scrollerInfo.scrollTop : scrollerInfo.scrollLeft;
                 realScrollTop = Math$max(0, scrollerScrollTop - Math$abs(topBufferDistance));
             }
             else {
@@ -317,7 +332,7 @@
                 repeat.enableScroll();
                 const scrollerInfo = repeat.getScrollerInfo();
                 const scroller_scroll_top = scrollerInfo.scrollTop;
-                const top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+                const top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
                 const real_scroll_top = Math$max(0, scroller_scroll_top === 0
                     ? 0
                     : (scroller_scroll_top - top_buffer_distance));
@@ -412,8 +427,8 @@
         }
         _remeasure(repeat, itemHeight, newViewCount, newArraySize, firstIndex) {
             const scrollerInfo = repeat.getScrollerInfo();
-            const scroller_scroll_top = scrollerInfo.scrollTop;
-            const top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+            const scroller_scroll_top = (repeat.direction === Direction.Horizontal) ? scrollerInfo.scrollLeft : scrollerInfo.scrollTop;
+            const top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
             const real_scroll_top = Math$max(0, scroller_scroll_top === 0
                 ? 0
                 : (scroller_scroll_top - top_buffer_distance));
@@ -550,11 +565,11 @@
     }
 
     class ListTemplateStrategy extends DefaultTemplateStrategy {
-        createBuffers(element) {
+        createBuffers(element, tag = 'li') {
             const parent = element.parentNode;
             return [
-                parent.insertBefore(aureliaPal.DOM.createElement('li'), element),
-                parent.insertBefore(aureliaPal.DOM.createElement('li'), element.nextSibling),
+                parent.insertBefore(aureliaPal.DOM.createElement(tag), element),
+                parent.insertBefore(aureliaPal.DOM.createElement(tag), element.nextSibling),
             ];
         }
     }
@@ -593,6 +608,7 @@
 
     class VirtualRepeat extends aureliaTemplatingResources.AbstractRepeater {
         constructor(element, viewFactory, instruction, viewSlot, viewResources, observerLocator, collectionStrategyLocator, templateStrategyLocator) {
+            var _a;
             super({
                 local: 'item',
                 viewsRequireLifecycle: aureliaTemplatingResources.viewsRequireLifecycle(viewFactory),
@@ -605,6 +621,7 @@
             this._handlingMutations = false;
             this._lastGetMore = 0;
             this.element = element;
+            this.direction = (((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.getAttribute) && element.parentElement.getAttribute('horizontal-scroll') !== null) ? Direction.Horizontal : Direction.Vertical;
             this.viewFactory = viewFactory;
             this.instruction = instruction;
             this.viewSlot = viewSlot;
@@ -654,23 +671,23 @@
             const element = this.element;
             const templateStrategy = this.templateStrategy = this.templateStrategyLocator.getStrategy(element);
             const scrollerEl = this.scrollerEl = templateStrategy.getScrollContainer(element);
-            const [topBufferEl, bottomBufferEl] = templateStrategy.createBuffers(element);
+            const [beginBufferEl, endBufferEl] = templateStrategy.createBuffers(element);
             const isFixedHeightContainer = scrollerEl !== htmlElement;
             const scrollListener = this._onScroll;
-            this.topBufferEl = topBufferEl;
-            this.bottomBufferEl = bottomBufferEl;
+            this.beginBufferEl = beginBufferEl;
+            this.endBufferEl = endBufferEl;
             this.itemsChanged();
             this._currScrollerInfo = this.getScrollerInfo();
             if (isFixedHeightContainer) {
                 scrollerEl.addEventListener('scroll', scrollListener);
             }
             else {
-                const firstElement = templateStrategy.getFirstElement(topBufferEl, bottomBufferEl);
-                this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(topBufferEl);
+                const firstElement = templateStrategy.getFirstElement(beginBufferEl, endBufferEl);
+                this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(beginBufferEl, this.direction);
                 aureliaPal.DOM.addEventListener('scroll', scrollListener, false);
                 this._calcDistanceToTopInterval = aureliaPal.PLATFORM.global.setInterval(() => {
                     const prevDistanceToTop = this.distanceToTop;
-                    const currDistanceToTop = getElementDistanceToTopOfDocument(topBufferEl);
+                    const currDistanceToTop = getElementDistanceToTopOfDocument(beginBufferEl, this.direction);
                     this.distanceToTop = currDistanceToTop;
                     if (prevDistanceToTop !== currDistanceToTop) {
                         const currentScrollerInfo = this.getScrollerInfo();
@@ -700,8 +717,8 @@
                 = false;
             this._unsubscribeCollection();
             this.resetCalculation();
-            this.templateStrategy.removeBuffers(this.element, this.topBufferEl, this.bottomBufferEl);
-            this.topBufferEl = this.bottomBufferEl = this.scrollerEl = null;
+            this.templateStrategy.removeBuffers(this.element, this.beginBufferEl, this.endBufferEl);
+            this.beginBufferEl = this.endBufferEl = this.scrollerEl = null;
             this.removeAllViews(true, false);
             const $clearInterval = aureliaPal.PLATFORM.global.clearInterval;
             $clearInterval(this._calcDistanceToTopInterval);
@@ -787,9 +804,13 @@
             return {
                 scroller: scroller,
                 scrollTop: scroller.scrollTop,
+                scrollLeft: scroller.scrollLeft,
                 height: scroller === htmlElement
                     ? innerHeight
                     : calcScrollHeight(scroller),
+                width: scroller === htmlElement
+                    ? innerWidth
+                    : calcScrollWidth(scroller)
             };
         }
         resetCalculation() {
@@ -1006,8 +1027,16 @@
             }
         }
         updateBufferElements(skipUpdate) {
-            this.topBufferEl.style.height = `${this.topBufferHeight}px`;
-            this.bottomBufferEl.style.height = `${this.bottomBufferHeight}px`;
+            if (this.direction === Direction.Vertical) {
+                this.beginBufferEl.style.height = `${this.topBufferHeight}px`;
+                this.endBufferEl.style.height = `${this.bottomBufferHeight}px`;
+            }
+            else {
+                this.beginBufferEl.style.width = `${this.topBufferHeight}px`;
+                this.beginBufferEl.style.display = 'inline-block';
+                this.endBufferEl.style.width = `${this.bottomBufferHeight}px`;
+                this.endBufferEl.style.display = 'inline-block';
+            }
             if (skipUpdate) {
                 this._ticking = true;
                 $raf(this.revertScrollCheckGuard);

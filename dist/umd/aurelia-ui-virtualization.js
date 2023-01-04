@@ -46,11 +46,11 @@
         view.bindingContext[repeat.local] = items[index];
         if (moveToBottom) {
             viewSlot.children.push(viewSlot.children.shift());
-            repeat.templateStrategy.moveViewLast(view, repeat.bottomBufferEl);
+            repeat.templateStrategy.moveViewLast(view, repeat.endBufferEl);
         }
         else {
             viewSlot.children.unshift(viewSlot.children.splice(-1, 1)[0]);
-            repeat.templateStrategy.moveViewFirst(view, repeat.topBufferEl);
+            repeat.templateStrategy.moveViewFirst(view, repeat.beginBufferEl);
         }
     };
     var calcMinViewsRequired = function (scrollerHeight, itemHeight) {
@@ -62,6 +62,11 @@
     var Math$round = Math.round;
     var Math$floor = Math.floor;
     var $isNaN = isNaN;
+    var Direction;
+    (function (Direction) {
+        Direction[Direction["Vertical"] = 0] = "Vertical";
+        Direction[Direction["Horizontal"] = 1] = "Horizontal";
+    })(Direction || (Direction = {}));
 
     var doc = document;
     var htmlElement = doc.documentElement;
@@ -77,10 +82,11 @@
         }
         return doc.scrollingElement || htmlElement;
     };
-    var getElementDistanceToTopOfDocument = function (element) {
+    var getElementDistanceToTopOfDocument = function (element, direction) {
+        if (direction === void 0) { direction = Direction.Vertical; }
         var box = element.getBoundingClientRect();
-        var scrollTop = window.pageYOffset;
-        var clientTop = htmlElement.clientTop;
+        var scrollTop = (direction === Direction.Vertical) ? window.pageYOffset : window.pageXOffset;
+        var clientTop = (direction === Direction.Vertical) ? htmlElement.clientTop : htmlElement.clientLeft;
         var top = box.top + scrollTop - clientTop;
         return Math$round(top);
     };
@@ -107,26 +113,37 @@
         height += getStyleValues(element, 'marginTop', 'marginBottom');
         return height;
     };
+    var calcOuterWidth = function (element) {
+        var width = element.getBoundingClientRect().width;
+        width += getStyleValues(element, 'marginLeft', 'marginRight');
+        return width;
+    };
     var calcScrollHeight = function (element) {
         var height = element.getBoundingClientRect().height;
         height -= getStyleValues(element, 'borderTopWidth', 'borderBottomWidth');
         return height;
     };
+    var calcScrollWidth = function (element) {
+        var width = element.getBoundingClientRect().width;
+        width -= getStyleValues(element, 'borderLeftWidth', 'borderRightWidth');
+        return width;
+    };
     var insertBeforeNode = function (view, bottomBuffer) {
         bottomBuffer.parentNode.insertBefore(view.lastChild, bottomBuffer);
     };
-    var getDistanceToParent = function (child, parent) {
+    var getDistanceToParent = function (child, parent, direction) {
+        if (direction === void 0) { direction = Direction.Vertical; }
         var offsetParent = child.offsetParent;
-        var childOffsetTop = child.offsetTop;
+        var childOffsetTop = (direction === Direction.Vertical) ? child.offsetTop : child.offsetLeft;
         if (offsetParent === null || offsetParent === parent) {
             return childOffsetTop;
         }
         else {
             if (offsetParent.contains(parent)) {
-                return childOffsetTop - parent.offsetTop;
+                return childOffsetTop - ((direction === Direction.Vertical) ? parent.offsetTop : parent.offsetLeft);
             }
             else {
-                return childOffsetTop + getDistanceToParent(offsetParent, parent);
+                return childOffsetTop + getDistanceToParent(offsetParent, parent, direction);
             }
         }
     };
@@ -154,7 +171,7 @@
                 this.createFirstRow(repeat);
             }
             var firstView = repeat.firstView();
-            var itemHeight = calcOuterHeight(firstView.firstChild);
+            var itemHeight = (repeat.direction === Direction.Horizontal) ? calcOuterWidth(firstView.firstChild) : calcOuterHeight(firstView.firstChild);
             if (itemHeight === 0) {
                 return 0;
             }
@@ -169,14 +186,14 @@
             }
         };
         ArrayVirtualRepeatStrategy.prototype.getViewRange = function (repeat, scrollerInfo) {
-            var topBufferEl = repeat.topBufferEl;
+            var topBufferEl = repeat.beginBufferEl;
             var scrollerEl = repeat.scrollerEl;
             var itemHeight = repeat.itemHeight;
             var realScrollTop = 0;
             var isFixedHeightContainer = scrollerInfo.scroller !== htmlElement;
             if (isFixedHeightContainer) {
-                var topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl);
-                var scrollerScrollTop = scrollerInfo.scrollTop;
+                var topBufferDistance = getDistanceToParent(topBufferEl, scrollerEl, repeat.direction);
+                var scrollerScrollTop = (repeat.direction === Direction.Vertical) ? scrollerInfo.scrollTop : scrollerInfo.scrollLeft;
                 realScrollTop = Math$max(0, scrollerScrollTop - Math$abs(topBufferDistance));
             }
             else {
@@ -357,7 +374,7 @@
                 repeat.enableScroll();
                 var scrollerInfo = repeat.getScrollerInfo();
                 var scroller_scroll_top = scrollerInfo.scrollTop;
-                var top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+                var top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
                 var real_scroll_top = Math$max(0, scroller_scroll_top === 0
                     ? 0
                     : (scroller_scroll_top - top_buffer_distance));
@@ -452,8 +469,8 @@
         };
         ArrayVirtualRepeatStrategy.prototype._remeasure = function (repeat, itemHeight, newViewCount, newArraySize, firstIndex) {
             var scrollerInfo = repeat.getScrollerInfo();
-            var scroller_scroll_top = scrollerInfo.scrollTop;
-            var top_buffer_distance = getDistanceToParent(repeat.topBufferEl, scrollerInfo.scroller);
+            var scroller_scroll_top = (repeat.direction === Direction.Horizontal) ? scrollerInfo.scrollLeft : scrollerInfo.scrollTop;
+            var top_buffer_distance = getDistanceToParent(repeat.beginBufferEl, scrollerInfo.scroller);
             var real_scroll_top = Math$max(0, scroller_scroll_top === 0
                 ? 0
                 : (scroller_scroll_top - top_buffer_distance));
@@ -619,11 +636,12 @@
         function ListTemplateStrategy() {
             return _super !== null && _super.apply(this, arguments) || this;
         }
-        ListTemplateStrategy.prototype.createBuffers = function (element) {
+        ListTemplateStrategy.prototype.createBuffers = function (element, tag) {
+            if (tag === void 0) { tag = 'li'; }
             var parent = element.parentNode;
             return [
-                parent.insertBefore(aureliaPal.DOM.createElement('li'), element),
-                parent.insertBefore(aureliaPal.DOM.createElement('li'), element.nextSibling),
+                parent.insertBefore(aureliaPal.DOM.createElement(tag), element),
+                parent.insertBefore(aureliaPal.DOM.createElement(tag), element.nextSibling),
             ];
         };
         return ListTemplateStrategy;
@@ -665,7 +683,9 @@
     var VirtualRepeat = (function (_super) {
         __extends(VirtualRepeat, _super);
         function VirtualRepeat(element, viewFactory, instruction, viewSlot, viewResources, observerLocator, collectionStrategyLocator, templateStrategyLocator) {
-            var _this = _super.call(this, {
+            var _this = this;
+            var _a;
+            _this = _super.call(this, {
                 local: 'item',
                 viewsRequireLifecycle: aureliaTemplatingResources.viewsRequireLifecycle(viewFactory),
             }) || this;
@@ -677,6 +697,7 @@
             _this._handlingMutations = false;
             _this._lastGetMore = 0;
             _this.element = element;
+            _this.direction = (((_a = element.parentElement) === null || _a === void 0 ? void 0 : _a.getAttribute) && element.parentElement.getAttribute('horizontal-scroll') !== null) ? Direction.Horizontal : Direction.Vertical;
             _this.viewFactory = viewFactory;
             _this.instruction = instruction;
             _this.viewSlot = viewSlot;
@@ -728,23 +749,23 @@
             var element = this.element;
             var templateStrategy = this.templateStrategy = this.templateStrategyLocator.getStrategy(element);
             var scrollerEl = this.scrollerEl = templateStrategy.getScrollContainer(element);
-            var _a = templateStrategy.createBuffers(element), topBufferEl = _a[0], bottomBufferEl = _a[1];
+            var _a = templateStrategy.createBuffers(element), beginBufferEl = _a[0], endBufferEl = _a[1];
             var isFixedHeightContainer = scrollerEl !== htmlElement;
             var scrollListener = this._onScroll;
-            this.topBufferEl = topBufferEl;
-            this.bottomBufferEl = bottomBufferEl;
+            this.beginBufferEl = beginBufferEl;
+            this.endBufferEl = endBufferEl;
             this.itemsChanged();
             this._currScrollerInfo = this.getScrollerInfo();
             if (isFixedHeightContainer) {
                 scrollerEl.addEventListener('scroll', scrollListener);
             }
             else {
-                var firstElement = templateStrategy.getFirstElement(topBufferEl, bottomBufferEl);
-                this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(topBufferEl);
+                var firstElement = templateStrategy.getFirstElement(beginBufferEl, endBufferEl);
+                this.distanceToTop = firstElement === null ? 0 : getElementDistanceToTopOfDocument(beginBufferEl, this.direction);
                 aureliaPal.DOM.addEventListener('scroll', scrollListener, false);
                 this._calcDistanceToTopInterval = aureliaPal.PLATFORM.global.setInterval(function () {
                     var prevDistanceToTop = _this.distanceToTop;
-                    var currDistanceToTop = getElementDistanceToTopOfDocument(topBufferEl);
+                    var currDistanceToTop = getElementDistanceToTopOfDocument(beginBufferEl, _this.direction);
                     _this.distanceToTop = currDistanceToTop;
                     if (prevDistanceToTop !== currDistanceToTop) {
                         var currentScrollerInfo = _this.getScrollerInfo();
@@ -774,8 +795,8 @@
                 = false;
             this._unsubscribeCollection();
             this.resetCalculation();
-            this.templateStrategy.removeBuffers(this.element, this.topBufferEl, this.bottomBufferEl);
-            this.topBufferEl = this.bottomBufferEl = this.scrollerEl = null;
+            this.templateStrategy.removeBuffers(this.element, this.beginBufferEl, this.endBufferEl);
+            this.beginBufferEl = this.endBufferEl = this.scrollerEl = null;
             this.removeAllViews(true, false);
             var $clearInterval = aureliaPal.PLATFORM.global.clearInterval;
             $clearInterval(this._calcDistanceToTopInterval);
@@ -863,9 +884,13 @@
             return {
                 scroller: scroller,
                 scrollTop: scroller.scrollTop,
+                scrollLeft: scroller.scrollLeft,
                 height: scroller === htmlElement
                     ? innerHeight
                     : calcScrollHeight(scroller),
+                width: scroller === htmlElement
+                    ? innerWidth
+                    : calcScrollWidth(scroller)
             };
         };
         VirtualRepeat.prototype.resetCalculation = function () {
@@ -1084,8 +1109,16 @@
             }
         };
         VirtualRepeat.prototype.updateBufferElements = function (skipUpdate) {
-            this.topBufferEl.style.height = "".concat(this.topBufferHeight, "px");
-            this.bottomBufferEl.style.height = "".concat(this.bottomBufferHeight, "px");
+            if (this.direction === Direction.Vertical) {
+                this.beginBufferEl.style.height = "".concat(this.topBufferHeight, "px");
+                this.endBufferEl.style.height = "".concat(this.bottomBufferHeight, "px");
+            }
+            else {
+                this.beginBufferEl.style.width = "".concat(this.topBufferHeight, "px");
+                this.beginBufferEl.style.display = 'inline-block';
+                this.endBufferEl.style.width = "".concat(this.bottomBufferHeight, "px");
+                this.endBufferEl.style.display = 'inline-block';
+            }
             if (skipUpdate) {
                 this._ticking = true;
                 $raf(this.revertScrollCheckGuard);

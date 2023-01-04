@@ -73,7 +73,7 @@ describe('vr-integration.table.spec.ts', () => {
 
     it('creates right structure', async () => {
       await bootstrapComponent();
-      const { topBufferEl: topBuffer, bottomBufferEl: bottomBuffer } = virtualRepeat;
+      const { beginBufferEl: topBuffer, endBufferEl: bottomBuffer } = virtualRepeat;
       expect(topBuffer.nextElementSibling.tagName).toBe('TR');
       expect(topBuffer.tagName).toBe('TR');
       expect(topBuffer.childNodes.length).toBe(0);
@@ -113,7 +113,7 @@ describe('vr-integration.table.spec.ts', () => {
         .then(() => {
           const element = virtualRepeat['element'];
           const table = element.parentNode;
-          expect(table.firstElementChild).toBe(virtualRepeat.topBufferEl.previousElementSibling);
+          expect(table.firstElementChild).toBe(virtualRepeat.beginBufferEl.previousElementSibling);
           expect(table.firstElementChild.innerHTML.trim()).toBe('<tr><td>Name</td></tr>');
           queue(() => validateState(virtualRepeat, viewModel, itemHeight));
           queue(() => validatePush(virtualRepeat, viewModel, done));

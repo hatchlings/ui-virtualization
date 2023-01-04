@@ -32,8 +32,8 @@ export function createAssertionQueue(): AsyncQueue {
 export function validateState(virtualRepeat: VirtualRepeat, viewModel: ITestAppInterface<any>, itemHeight: number, extraHeight?: number) {
   let views = virtualRepeat.viewSlot.children;
   let expectedHeight = viewModel.items.length * itemHeight;
-  let topBufferHeight = virtualRepeat.topBufferEl.getBoundingClientRect().height;
-  let bottomBufferHeight = virtualRepeat.bottomBufferEl.getBoundingClientRect().height;
+  let topBufferHeight = virtualRepeat.beginBufferEl.getBoundingClientRect().height;
+  let bottomBufferHeight = virtualRepeat.endBufferEl.getBoundingClientRect().height;
   let renderedItemsHeight = views.length * itemHeight;
   expect(topBufferHeight + renderedItemsHeight + bottomBufferHeight).toBe(
     expectedHeight,
@@ -70,8 +70,8 @@ export function validateState(virtualRepeat: VirtualRepeat, viewModel: ITestAppI
 export function validateScrolledState(virtualRepeat: VirtualRepeat, viewModel: ITestAppInterface<any>, itemHeight: number, extraTitle?: string) {
   let views = virtualRepeat.viewSlot.children;
   let expectedHeight = viewModel.items.length * itemHeight;
-  let topBufferHeight = virtualRepeat.topBufferEl.getBoundingClientRect().height;
-  let bottomBufferHeight = virtualRepeat.bottomBufferEl.getBoundingClientRect().height;
+  let topBufferHeight = virtualRepeat.beginBufferEl.getBoundingClientRect().height;
+  let bottomBufferHeight = virtualRepeat.endBufferEl.getBoundingClientRect().height;
   let renderedItemsHeight = views.length * itemHeight;
   expect(topBufferHeight + renderedItemsHeight + bottomBufferHeight).toBe(
     expectedHeight,
@@ -342,11 +342,11 @@ const isFragment = (node: Node): node is DocumentFragment => node.nodeType === N
  */
 export const getRepeatActiveViewCount = (repeat: VirtualRepeat): number => {
   let count = 0;
-  let curr = repeat.templateStrategy.getFirstElement(repeat.topBufferEl, repeat.bottomBufferEl);
+  let curr = repeat.templateStrategy.getFirstElement(repeat.beginBufferEl, repeat.endBufferEl);
   while (curr !== null) {
     count++;
     curr = curr.nextElementSibling;
-    if (curr === repeat.bottomBufferEl) {
+    if (curr === repeat.endBufferEl) {
       break;
     }
   }
